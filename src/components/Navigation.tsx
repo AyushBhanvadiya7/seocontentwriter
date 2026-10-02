@@ -43,8 +43,7 @@ export function Navigation({ user }: { user: NavUser | null | undefined }) {
   async function logout() {
     setLoggingOut(true);
     await fetch("/api/auth/logout", { method: "POST" });
-    router.refresh();
-    window.location.href = "/login";
+    router.replace("/login");
   }
 
   function closeMenu() {

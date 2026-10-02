@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 // Served at /opengraph-image — the preview card for WhatsApp/Twitter/Google.
-export const runtime = "edge";
+export const runtime = "nodejs";
 export const alt = "SEO Content Writer — Research, write, publish";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";

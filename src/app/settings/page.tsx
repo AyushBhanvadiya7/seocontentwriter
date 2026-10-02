@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { KeyRound, Loader2, Trash2 } from "lucide-react";
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [currentPw, setCurrentPw] = useState("");
@@ -71,7 +73,7 @@ export default function SettingsPage() {
         setDeleteError(data.message || "Delete failed.");
         return;
       }
-      window.location.href = "/register";
+      router.replace("/register");
     } catch {
       setDeleteError("Delete failed. Check your connection and try again.");
     } finally {

@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 // Served at /icon + /apple-icon — the small logo in browser tabs and Google results.
-export const runtime = "edge";
+export const runtime = "nodejs";
 export const size = { width: 64, height: 64 };
 export const contentType = "image/png";
 

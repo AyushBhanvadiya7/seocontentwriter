@@ -7,9 +7,10 @@ import { checkRateLimit, clientIp } from "@/lib/rate-limit";
 // POST /api/generations/[id]/step
 // Runs exactly ONE stage per call. The browser calls it again and again
 // until `done: true` comes back.
-// One stage always fits inside the 60s serverless limit.
-
-export const maxDuration = 60;
+// Stages include one or more external AI requests. Allow enough time for
+// provider retries on Vercel (up to the platform's 5-minute Hobby limit).
+export const runtime = "nodejs";
+export const maxDuration = 300;
 
 interface RouteContext {
   params: Promise<{ id: string }>;

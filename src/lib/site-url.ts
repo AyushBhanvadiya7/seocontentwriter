@@ -36,6 +36,16 @@ function validateUrl(candidate: string, sourceName: string): string {
     if (!urlObj.hostname || urlObj.hostname === "temp") {
       throw new Error(`[site-url] Invalid hostname in "${candidate}" from ${sourceName}.`);
     }
+
+    if (process.env.VERCEL && process.env.NODE_ENV === "production") {
+      const localHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
+      if (urlObj.protocol !== "https:" || localHosts.has(urlObj.hostname)) {
+        throw new Error(
+          `[site-url] Production SITE_URL must be a public HTTPS origin (received "${candidate}" from ${sourceName}).`
+        );
+      }
+    }
+
     return `${urlObj.protocol}//${urlObj.host}`;
   } catch (err: unknown) {
     if (err instanceof Error && err.message.includes("[site-url]")) {

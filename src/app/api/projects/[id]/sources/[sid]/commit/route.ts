@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { sources, keywords, clusters } from "@/db/schema";
+import { sources, projects, keywords, clusters } from "@/db/schema";
 import { requireAuth } from "@/lib/session";
 import { eq, and, inArray } from "drizzle-orm";
 
@@ -15,16 +15,46 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const projectId = parseInt(id, 10);
     const sourceId = parseInt(sid, 10);
 
+    if (!Number.isFinite(projectId) || !Number.isFinite(sourceId)) {
+      return NextResponse.json({ success: false, message: "Invalid project or source id." }, { status: 400 });
+    }
+
+    const project = await db.query.projects.findFirst({
+      where: and(eq(projects.id, projectId), eq(projects.userId, session.userId!)),
+      columns: { id: true },
+    });
+    if (!project) {
+      return NextResponse.json({ success: false, message: "Project not found." }, { status: 404 });
+    }
+
     const source = await db.query.sources.findFirst({
-      where: and(eq(sources.id, sourceId), eq(sources.projectId, projectId)),
+      where: and(
+        eq(sources.id, sourceId),
+        eq(sources.projectId, projectId),
+        eq(sources.uploadedBy, session.userId!)
+      ),
     });
     if (!source) {
       return NextResponse.json({ success: false, message: "Source not found" }, { status: 404 });
     }
 
-    const body = await request.json();
-    const rows = body.rows || [];
-    const excluded = new Set(body.excluded || []);
+    const body = await request.json().catch(() => null);
+    if (!body || !Array.isArray(body.rows) || body.rows.length > 50) {
+      return NextResponse.json({ success: false, message: "Invalid keyword preview." }, { status: 400 });
+    }
+
+    const rows = body.rows as Array<{ keyword: string; cluster?: string }>;
+    if (rows.some((row) => !row || typeof row.keyword !== "string" || row.keyword.length < 2 || row.keyword.length > 120)) {
+      return NextResponse.json({ success: false, message: "One or more keywords are invalid." }, { status: 400 });
+    }
+
+    const excludedValues = Array.isArray(body.excluded) ? body.excluded : [];
+    const excluded = new Set<number>(
+      excludedValues.filter(
+        (index: unknown): index is number =>
+          typeof index === "number" && Number.isInteger(index) && index >= 0 && index < rows.length
+      )
+    );
 
     // Build clusters
     const clusterMap = new Map<string, number>();
