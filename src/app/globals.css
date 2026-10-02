@@ -1,0 +1,194 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary-50: #eff6ff;
+  --color-primary-100: #dbeafe;
+  --color-primary-500: #3b82f6;
+  --color-primary-600: #2563eb;
+  --color-primary-700: #1d4ed8;
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: clip;
+}
+
+body {
+  overflow-x: clip;
+  font-family: 'Inter', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+
+/* =========================================================
+   Blog & Article Formatting (Calibri + Exact Heading Sizes)
+   ========================================================= */
+
+.prose-content,
+article,
+.blog-content {
+  font-family: 'Calibri', 'Segoe UI', Arial, sans-serif !important;
+  font-size: 11.5pt !important;
+  line-height: 1.7 !important;
+  color: #27272a !important;
+}
+
+/* H1 - 20pt (Title) */
+.prose-content h1,
+article h1,
+.blog-content h1 {
+  font-size: 20pt !important;
+  font-weight: 700 !important;
+  line-height: 1.3 !important;
+  margin-top: 1.5rem !important;
+  margin-bottom: 0.8rem !important;
+  color: #09090b !important;
+}
+
+/* H2 - 18pt (Main Headings) */
+.prose-content h2,
+article h2,
+.blog-content h2 {
+  font-size: 18pt !important;
+  font-weight: 700 !important;
+  line-height: 1.35 !important;
+  margin-top: 1.6rem !important;
+  margin-bottom: 0.6rem !important;
+  color: #18181b !important;
+}
+
+/* H3 - 16pt (Numbered Points / Sub-headings) */
+.prose-content h3,
+article h3,
+.blog-content h3 {
+  font-size: 16pt !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  margin-top: 1.25rem !important;
+  margin-bottom: 0.5rem !important;
+  color: #27272a !important;
+}
+
+/* Paragraphs (Clean, Normal Weight, Proper Spacing) */
+.prose-content p,
+article p,
+.blog-content p {
+  font-size: 11.5pt !important;
+  font-weight: 400 !important;
+  line-height: 1.7 !important;
+  margin-bottom: 1.1rem !important;
+  color: #27272a !important;
+}
+
+/* Lists & Bullets */
+.prose-content ul,
+article ul,
+.blog-content ul {
+  list-style-type: disc !important;
+  padding-left: 1.6rem !important;
+  margin-bottom: 1.1rem !important;
+}
+
+.prose-content ol,
+article ol,
+.blog-content ol {
+  list-style-type: decimal !important;
+  padding-left: 1.6rem !important;
+  margin-bottom: 1.1rem !important;
+}
+
+.prose-content li,
+article li,
+.blog-content li {
+  font-size: 11.5pt !important;
+  font-weight: 400 !important;
+  line-height: 1.65 !important;
+  margin-bottom: 0.4rem !important;
+}
+
+/* Tables */
+.prose-content table,
+article table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  border: 1px solid #d4d4d8 !important;
+  margin-top: 1rem !important;
+  margin-bottom: 1.2rem !important;
+  font-size: 11pt !important;
+}
+
+.prose-content th,
+.prose-content td,
+article th,
+article td {
+  border: 1px solid #d4d4d8 !important;
+  padding: 0.55rem 0.75rem !important;
+  text-align: left !important;
+}
+
+.prose-content th,
+article th {
+  background-color: #f4f4f5 !important;
+  font-weight: 600 !important;
+  color: #18181b !important;
+}
+/* Landing animations (lightweight, GPU-friendly transforms only). */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.animate-marquee {
+  animation: marquee 28s linear infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.animate-shimmer {
+  background-size: 220% auto;
+  animation: shimmer 6s ease-in-out infinite;
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-14px); }
+}
+.animate-float-slow {
+  animation: float-slow 7s ease-in-out infinite;
+}
+
+/* Light sweep across cards on hover. */
+.shine {
+  position: relative;
+  overflow: hidden;
+}
+.shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 42%, rgba(147, 197, 253, 0.35) 50%, transparent 58%);
+  transform: translateX(-130%);
+  transition: transform 0.9s ease;
+  pointer-events: none;
+}
+.shine:hover::after {
+  transform: translateX(130%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee,
+  .animate-shimmer,
+  .animate-float-slow {
+    animation: none;
+  }
+  .shine::after {
+    display: none;
+  }
+}
+
