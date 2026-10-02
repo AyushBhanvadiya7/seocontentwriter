@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { checkRateLimit } from "@/lib/rate-limit";
 
-// Middleware runs BEFORE every page and API route.
-// It checks the session cookie shape here (fast gate).
-// The real check happens on the server via requireAuth().
+// Proxy runs before pages and API routes to apply fast session and rate-limit gates.
+// The real session validation happens on the server via requireAuth().
 // Iron-session cookies always start with "Fe26.".
 
 const SESSION_COOKIE = "seo_writer_session";
@@ -12,11 +11,11 @@ const PUBLIC_PAGES = ["/", "/serp", "/login", "/register", "/pricing", "/terms",
 const PUBLIC_APIS = ["/api/health", "/api/auth", "/api/serp", "/api/billing/webhook", "/api/contact"];
 
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
   // Public APIs: no check needed (including all /api/auth/* endpoints).
-  if (PUBLIC_APIS.some((p) => pathname.startsWith(p))) {
+  if (PUBLIC_APIS.some((p) => pathname === p || pathname.startsWith(`${p}/`))) {
     return NextResponse.next();
   }
 

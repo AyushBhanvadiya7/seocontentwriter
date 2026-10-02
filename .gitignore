@@ -4,11 +4,13 @@
 # Build output
 /.next/
 /out/
-*.tsbuildinfo
+/*.tsbuildinfo
 
-# Environment variables
+# Environment variables and Vercel project metadata
 .env
-.env*.local
+.env.*
+!.env.example
+.vercel
 
 # Uploads
 /uploads

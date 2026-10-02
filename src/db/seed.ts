@@ -3,20 +3,20 @@ import { db } from "./index";
 import { users, promptTemplates } from "./schema";
 import { eq } from "drizzle-orm";
 import { hashPassword } from "@/lib/auth";
-import { randomBytes } from "crypto";
 
 async function seed() {
- const adminEmail = process.env.SEED_ADMIN_EMAIL?.trim() || "admin@example.com";
+  const adminEmail = process.env.SEED_ADMIN_EMAIL?.trim().toLowerCase();
+  if (!adminEmail) {
+    throw new Error("Set SEED_ADMIN_EMAIL before running the seed script.");
+  }
+
   let admin = await db.query.users.findFirst({ where: eq(users.email, adminEmail) });
   if (!admin) {
-    // Password comes from .env. If missing, generate a random one
-    // and print it once — save it immediately.
-    let adminPassword = process.env.SEED_ADMIN_PASSWORD?.trim();
-    let generated = false;
-    if (!adminPassword) {
-      adminPassword = randomBytes(12).toString("base64url");
-      generated = true;
+    const adminPassword = process.env.SEED_ADMIN_PASSWORD?.trim();
+    if (!adminPassword || adminPassword.length < 16) {
+      throw new Error("Set a unique SEED_ADMIN_PASSWORD of at least 16 characters before seeding.");
     }
+
     const [created] = await db
       .insert(users)
       .values({
@@ -30,9 +30,6 @@ async function seed() {
       .returning();
     admin = created;
     console.log("Admin created:", admin.email);
-    if (generated) {
-      console.log("Admin password (generated once, save it now):", adminPassword);
-    }
   } else {
     console.log("Admin already exists");
   }

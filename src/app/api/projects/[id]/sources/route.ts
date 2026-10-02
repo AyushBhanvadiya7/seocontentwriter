@@ -4,7 +4,11 @@ import { sources, projects } from "@/db/schema";
 import { requireAuth } from "@/lib/session";
 import { saveUploadedFile, validateFileType } from "@/lib/upload";
 import { parseKeywordFile } from "@/lib/parser";
+import { MAX_KEYWORD_UPLOAD_BYTES, MAX_KEYWORD_UPLOAD_LABEL } from "@/lib/upload-limits";
 import { eq, and, desc } from "drizzle-orm";
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
 interface RouteContext {
   params: Promise<{ id: string }>;
@@ -48,14 +52,29 @@ export async function POST(request: NextRequest, context: RouteContext) {
     const { id } = await context.params;
     const projectId = parseInt(id, 10);
 
+    if (!Number.isFinite(projectId)) {
+      return NextResponse.json({ success: false, message: "Invalid project id." }, { status: 400 });
+    }
+
+    const project = await db.query.projects.findFirst({
+      where: and(eq(projects.id, projectId), eq(projects.userId, session.userId!)),
+      columns: { id: true },
+    });
+    if (!project) {
+      return NextResponse.json({ success: false, message: "Project not found." }, { status: 404 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     if (!file) {
       return NextResponse.json({ success: false, message: "No file uploaded" }, { status: 400 });
     }
 
-    if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ success: false, message: "File must be under 10 MB" }, { status: 400 });
+    if (file.size > MAX_KEYWORD_UPLOAD_BYTES) {
+      return NextResponse.json(
+        { success: false, message: `File must be no larger than ${MAX_KEYWORD_UPLOAD_LABEL}.` },
+        { status: 413 }
+      );
     }
 
     const typeCheck = validateFileType(file.name, file.type || "application/octet-stream");
@@ -77,7 +96,13 @@ export async function POST(request: NextRequest, context: RouteContext) {
         parseReport: report,
         uploadedBy: session.userId!,
       })
-      .returning();
+      .returning({
+        id: sources.id,
+        fileName: sources.fileName,
+        fileType: sources.fileType,
+        rowCount: sources.rowCount,
+        createdAt: sources.createdAt,
+      });
 
     return NextResponse.json({ success: true, source, preview: rows.slice(0, 50), report });
   } catch (error) {

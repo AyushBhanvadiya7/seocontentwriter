@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { GenerateModal } from "@/components/project/GenerateModal";
+import { MAX_KEYWORD_UPLOAD_BYTES, MAX_KEYWORD_UPLOAD_LABEL } from "@/lib/upload-limits";
 import {
   CheckCircle,
   Download,
@@ -76,6 +77,11 @@ export function KeywordsPanel({ projectId }: { projectId: number }) {
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (file.size > MAX_KEYWORD_UPLOAD_BYTES) {
+      alert(`Choose a file no larger than ${MAX_KEYWORD_UPLOAD_LABEL}.`);
+      e.target.value = "";
+      return;
+    }
     setUploading(true);
     setUploadReport(null);
     setPreviewRows([]);
@@ -237,7 +243,7 @@ export function KeywordsPanel({ projectId }: { projectId: number }) {
             <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-slate-200 hover:bg-slate-50">
               <Upload className="h-4 w-4" />
               Upload keyword file
-              <input type="file" className="hidden" onChange={handleUpload} accept=".csv,.xlsx,.xls,.txt,.json,.pdf,.docx,.xml" />
+              <input type="file" className="hidden" onChange={handleUpload} accept=".csv,.xlsx,.xls,.txt,.json,.pdf,.docx" />
             </label>
             <a
               href="/sample-keywords.csv"

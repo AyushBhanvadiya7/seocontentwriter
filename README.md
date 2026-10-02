@@ -1,251 +1,125 @@
 # SEO Content Writer
 
-A web-based SEO content generation tool. A user creates a Project for one website, uploads a keyword file, imports page URLs, sets a brand voice, and then generates researched, humanized, publish-ready articles with internal links, meta tags, JSON-LD schema, and image prompts.
+A Next.js application for organizing SEO keywords and generating researched, publish-ready articles. Users can create website projects, import keyword lists, set a brand voice, generate content with an AI provider, and export articles with SEO metadata and schema.
 
-> **Note about the original specification:** The full product spec requested **PHP 8.3 + Laravel 11 + MySQL 8 + Redis**. This sandbox environment only provides **Node.js + PostgreSQL**, so this prototype is built with **Next.js 16 + React + TypeScript + PostgreSQL + Drizzle ORM**. The database schema, feature set, and UI faithfully mirror the spec so the product can be ported to Laravel/MySQL/Redis later.
->
-> **Login removed:** For this release, login is disabled. Everyone uses the same guest/admin account automatically. You can open the site and use it immediately.
+## Deploy to Vercel
 
-## What is implemented in this release
+This repository is configured for Vercel. The project uses **PostgreSQL + Drizzle ORM**; Vercel's filesystem is not used as persistent storage.
 
-- No login required — open and use immediately.
-- Dashboard with project cards and recent content.
-- Project create wizard (Steps 1–2 fully, Steps 3–5 in the workspace).
-- Keyword file upload: CSV, XLSX, XLS, TXT, JSON, PDF, DOCX.
-- Parser: delimiter/header/column detection, keyword cleaning, de-duplication, preview, parse report.
-- Keyword table: search, status filter, status update, delete, bulk paste add.
-- Generate form pre-filled from keyword row: content type, word count, tone, secondary keywords.
-- Content engine skeleton with 8-stage pipeline and demo fallback.
-- Result screen: article preview / HTML / Markdown, SEO panel, validation report, internal/external links, image prompt cards.
-- Content library, settings, and admin panels (basic).
-- Database schema matching Section 10 of the spec.
-- Prompt templates table seeded with versioned prompts.
-- Credits ledger with automatic deduction and refund on failure.
+### 1. Import the GitHub repository
 
-## Tech stack in this repo
+In Vercel, choose **Add New → Project**, import this repository, and keep the detected **Next.js** framework. `vercel.json` configures the install and build commands. Each deployment runs:
 
-- Next.js 16 (App Router)
-- React 19 + TypeScript 5
-- Tailwind CSS 4
-- PostgreSQL 16
-- Drizzle ORM
-- Iron Session (auth currently disabled)
-- bcryptjs (password hashing)
-- csv-parse, xlsx, pdf-parse, mammoth (parsing)
-- marked + DOMPurify (rendering / sanitization)
-
----
-
-## How to run on your own PC
-
-### 1. Install required software
-
-You need these free tools on your computer:
-
-| Tool | Download | Why you need it |
-|------|----------|-----------------|
-| Node.js 20+ | https://nodejs.org | Runs the website code |
-| PostgreSQL 14+ | https://postgresql.org | Stores projects, keywords and articles |
-| Git | https://git-scm.com | Downloads the code |
-
-### 2. Download the project
-
-Open a terminal (Command Prompt / PowerShell on Windows, Terminal on Mac/Linux) and run:
-
-```bash
-git clone <your-repo-url>
-cd seo-content-writer
+```text
+npm ci → npm run db:migrate → npm run build
 ```
 
-### 3. Install project dependencies
+A deployment intentionally fails if migrations fail or no database URL is configured. Migrations run before the new application build is published.
+
+### 2. Connect PostgreSQL
+
+Recommended: add the **Neon Postgres integration** from the Vercel Marketplace. It supplies:
+
+- `DATABASE_URL` — pooled connection for application requests.
+- `DATABASE_URL_UNPOOLED` — direct connection for schema migrations.
+
+The build uses `DATABASE_URL_UNPOOLED` when available and falls back to `DATABASE_URL`. If you use another managed PostgreSQL provider, set these variables yourself. Keep `DATABASE_URL` on the provider's serverless/pooler endpoint and use a direct URL for `DATABASE_URL_UNPOOLED` where possible.
+
+Use a separate database or Neon branch for **Preview** deployments; do not point previews at the production database. Make sure the database environment variables are enabled for the Vercel environments in which the project will build.
+
+### 3. Add environment variables in Vercel
+
+Set secrets under **Project → Settings → Environment Variables**. Apply the required values to Production and to any Preview/Development environments you plan to use. Never commit keys or put secret keys in `NEXT_PUBLIC_` variables.
+
+**Required to run:**
+
+| Variable | Purpose |
+| --- | --- |
+| `DATABASE_URL` | Pooled PostgreSQL URL used by the app. |
+| `SESSION_SECRET` | Iron-session encryption key; at least 32 characters. Generate one with `openssl rand -base64 32`. Use a private value, not the example or a value from this README. |
+
+**Recommended canonical URL settings:** set `SITE_URL` to the public HTTPS origin, for example `https://your-project.vercel.app`. Vercel system URL variables are used as a fallback. `NEXT_PUBLIC_APP_URL` and `NEXT_PUBLIC_SITE_URL` may also be set to the same public origin. `NEXT_PUBLIC_APP_NAME` is optional.
+
+**At least one AI provider is required to generate articles.** The app selects the first configured provider in this order: AIMLAPI, Gemini, then OpenAI. If you set more than one, the first one wins.
+
+| Provider | Variables |
+| --- | --- |
+| AIMLAPI | `AIMLAPI_KEY`, optional `AIMLAPI_MODEL` |
+| Google Gemini | `GEMINI_API_KEY`, optional `GEMINI_MODEL` |
+| OpenAI | `OPENAI_API_KEY`, optional `OPENAI_MODEL` |
+
+Other optional integrations:
+
+| Integration | Variables / notes |
+| --- | --- |
+| Live SERP research | `SERPER_API_KEY`; optional `SERPER_GL` and `SERPER_HL`. |
+| Email | `RESEND_API_KEY` and a verified-domain `EMAIL_FROM`. Needed for email verification, password resets, and admin one-time codes. `CONTACT_TO` controls the contact/support destination. |
+| Razorpay payments | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, and `RAZORPAY_WEBHOOK_SECRET`. After deploying, configure the Razorpay webhook URL as `https://your-domain/api/billing/webhook`. Keep the secret key and webhook secret server-only. |
+| Sentry | `NEXT_PUBLIC_SENTRY_DSN`; source-map uploads additionally use `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT`. |
+
+The full variable list and local defaults are in [`.env.example`](.env.example). Do not enter any real keys in this repository or in chat; add them through Vercel's environment-variable UI or your secret manager.
+
+### 4. Deploy and check health
+
+Deploy from Vercel. The first build creates/updates the database schema before compiling the site. Once it is live, open:
+
+- `https://your-domain/api/health` — checks application-to-database connectivity.
+- The website's registration/login and project creation flow.
+
+An AI key is necessary for article generation; a Serper key enables live search research; Resend is needed for email-delivered flows; Razorpay is needed only if you want paid credit packs. The app can be deployed without those optional integrations, but the related features will not be fully operational.
+
+### 5. Create the first admin (optional)
+
+Normal users can register without an admin seed. To enable the admin area, run the seed script once against the production database from a trusted local machine:
+
+1. Install the Vercel CLI and link the local checkout to the Vercel project with `npx vercel link`.
+2. Pull the Production variables into the ignored local `.env` file: `npx vercel env pull .env --environment=production`.
+3. Add `SEED_ADMIN_EMAIL` and a unique `SEED_ADMIN_PASSWORD` (at least 16 characters) to that local `.env` file, then run `npm run db:seed`.
+4. Remove the temporary seed-password value from `.env` after the seed completes. The `.env` file is ignored by Git.
+
+Admin sign-in uses an email one-time code, so configure Resend before relying on admin access.
+
+## Local development
+
+Requirements: Node.js 22 and PostgreSQL.
 
 ```bash
-npm install
-```
-
-This downloads all the libraries the website needs.
-
-### 4. Start PostgreSQL and create the database
-
-**Windows:** Start "pgAdmin" or the PostgreSQL service from Services.
-
-**Mac (Homebrew):**
-```bash
-brew services start postgresql@16
-```
-
-**Ubuntu/Linux:**
-```bash
-sudo service postgresql start
-```
-
-Then create the database:
-```bash
-createdb -U postgres app_db
-```
-
-If `createdb` asks for a password, enter the password you set during PostgreSQL installation.
-
-### 5. Set up the environment file
-
-```bash
+npm ci
 cp .env.example .env
 ```
 
-Open `.env` in any text editor and set:
-
-```env
-DATABASE_URL="postgresql://postgres:YOUR_PASSWORD@127.0.0.1:5432/app_db"
-SESSION_SECRET="paste-a-random-32-character-string-here"
-```
-
-- Replace `YOUR_PASSWORD` with your PostgreSQL password.
-- `SESSION_SECRET` can be any long random text. You can generate one with:
-  ```bash
-  openssl rand -base64 32
-  ```
-
-Optional (real AI generation):
-```env
-OPENAI_API_KEY="sk-..."
-OPENAI_MODEL="gpt-4o-mini"
-```
-
-Without `OPENAI_API_KEY` the app runs in **demo mode** and creates sample articles.
-
-### 6. Create the database tables
+Set `DATABASE_URL` to a PostgreSQL connection string, set `SESSION_SECRET` to a random value of at least 32 characters, and choose a `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` (at least 16 characters) for the required local seed. Then run:
 
 ```bash
-npx drizzle-kit push
-```
-
-### 7. Seed the database
-
-```bash
-set -a && source .env && set +a
-npx tsx src/db/seed.ts
-```
-
-This creates the default user and prompt templates.
-
-### 8. Start the website
-
-```bash
+npm run db:setup   # apply checked-in migrations and add prompt templates/admin
 npm run dev
 ```
 
-Open your browser and go to: **http://localhost:3000**
+Open <http://localhost:3000>. You may add an AI provider key to generate real articles. Database migrations can also be run separately with `npm run db:migrate`.
 
-You can use the website immediately — no login required.
-
----
-
-## How to use the website from another PC on the same network
-
-### Step 1: Find your PC's local IP address
-
-**Windows:**
-```bash
-ipconfig
-```
-Look for "IPv4 Address" under your active network adapter (e.g. `192.168.1.45`).
-
-**Mac/Linux:**
-```bash
-ifconfig
-# or
-ip addr
-```
-Look for `inet` under your Wi-Fi or Ethernet adapter (e.g. `192.168.1.45`).
-
-### Step 2: Start the website so it listens on all network interfaces
-
-Instead of `npm run dev`, start with:
+Useful checks:
 
 ```bash
-npm run dev -- --hostname 0.0.0.0 --port 3000
-```
-
-Or for the production build:
-```bash
+npm run lint
+npm run typecheck
 npm run build
-npm start -- --hostname 0.0.0.0 --port 3000
 ```
 
-`0.0.0.0` means "accept connections from any computer on the network."
+`npm run build` compiles the app only. Vercel's `vercel-build` command also runs the migrations.
 
-### Step 3: Open the website on the other PC
+## Deployment and storage notes
 
-On the other computer, open a browser and type:
+- Keyword file uploads are parsed during the request and temporarily written to the function's local temp directory. Vercel functions have a 4.5 MB request-body ceiling, so the app limits keyword files to 4 MB. Temporary files are not an archive and are not durable. If you need permanent file storage or larger uploads, add object storage (for example, Vercel Blob with direct client uploads).
+- Rate limits currently use per-process memory. They are useful as a basic safeguard, but are not globally shared across serverless instances. For high-traffic or abuse-sensitive production use, connect a shared rate-limit store such as Upstash Redis.
+- `DATABASE_URL` and every provider/payment/email key are server-side secrets. Only explicitly public values (such as a Sentry DSN or Razorpay Key ID) should use `NEXT_PUBLIC_`.
 
+## Project layout
+
+```text
+src/app/       Next.js App Router pages and API routes
+src/components Shared UI and project workspace
+src/db/        Drizzle schema, database client, migrations, and seed script
+drizzle/       Checked-in PostgreSQL migration files
+src/lib/       Authentication, uploads, AI providers, generation, billing, and utilities
+src/proxy.ts   Session gate and API rate-limit proxy
 ```
-http://192.168.1.45:3000
-```
-
-Replace `192.168.1.45` with the IP address you found in Step 1.
-
-Both PCs must be connected to the same Wi-Fi or router.
-
----
-
-## How to use the website from any computer on the internet (optional, advanced)
-
-If you want to use it from outside your home/office, you have a few options:
-
-1. **Cloud server (recommended for production):**
-   - Rent a VPS from DigitalOcean, AWS, Hetzner, etc.
-   - Install Node.js and PostgreSQL on the server.
-   - Upload the project, run `npm install`, `npx drizzle-kit push`, `npm run build`, `npm start`.
-   - Point your domain to the server IP and use Nginx or Caddy as a reverse proxy.
-
-2. **Tunnel services (quick testing):**
-   - Use a tool like **Cloudflare Tunnel** or **ngrok** to expose your local PC to the internet.
-   - Example with ngrok:
-     ```bash
-     ngrok http 3000
-     ```
-   - ngrok will give you a public URL like `https://abc123.ngrok.io` that anyone can open.
-
-3. **Home router port forwarding (not recommended for security reasons):**
-   - Forward port 3000 on your router to your PC's local IP.
-   - Find your public IP at https://whatismyipaddress.com.
-   - Others can visit `http://YOUR_PUBLIC_IP:3000`.
-   - Only do this temporarily and only if you understand the security risks.
-
----
-
-## Quick start: testing the core flow
-
-1. Open **http://localhost:3000** (or your network IP).
-2. Click **Start using it free** or **Dashboard**.
-3. Click **New project** and fill in the website name, URL, city and a business description (must be at least 100 characters).
-4. In the project workspace, open the **Keywords** tab.
-5. Upload a CSV file with a `keyword` column, or click **Paste keywords** and add keywords one per line.
-6. Click **Save keywords**.
-7. Click **Make content** on any keyword row.
-8. Click **Generate**. In demo mode this creates a sample article instantly.
-9. View the result, copy HTML, or download `.md`, `.html` or `.json`.
-
----
-
-## How to stop the website
-
-In the terminal where the website is running, press **Ctrl + C**.
-
----
-
-## Project structure
-
-```
-src/
-  app/            Next.js pages and API routes
-  components/     Shared React components
-  db/             Drizzle schema, DB client, seed script
-  lib/            Business logic: auth, parser, LLM providers, generation engine
-```
-
-## Important notes
-
-- This is a working prototype of Stage A and Stage B from the build order. The full 8-stage content engine uses real LLM calls when `OPENAI_API_KEY` is set; otherwise it runs in demo mode.
-- File uploads are stored under `/tmp/seo-writer-uploads` by default. Change `UPLOAD_DIR` in production and ensure it is outside the web root.
-- For Laravel/MySQL/Redis delivery, the domain model, table schema, API contracts, and prompt library from this repo can be ported directly to PHP/Laravel.

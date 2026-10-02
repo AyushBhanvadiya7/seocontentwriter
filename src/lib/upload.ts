@@ -17,7 +17,7 @@ function resolveUploadDir(): string {
 
 const UPLOAD_DIR = resolveUploadDir();
 
-const ALLOWED_EXTENSIONS = [".csv", ".xlsx", ".xls", ".txt", ".json", ".pdf", ".docx", ".xml"];
+const ALLOWED_EXTENSIONS = [".csv", ".xlsx", ".xls", ".txt", ".json", ".pdf", ".docx"];
 const BLOCKED_EXTENSIONS = [".php", ".phtml", ".js", ".exe", ".sh", ".svg", ".html", ".htaccess"];
 
 export interface UploadedFile {
